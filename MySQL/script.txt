@@ -1,0 +1,301 @@
+create database RVO;
+
+use RVO;
+
+CREATE TABLE Painel (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Localizacao VARCHAR(255),
+    ->     Status VARCHAR(255),
+    ->     DataInicioMonitoramento DATE
+    -> );
+
+
+CREATE TABLE Sensor (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Tipo VARCHAR(255),
+    ->     FaixaMedicao VARCHAR(255),
+    ->     PainelID INT,
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID)
+    -> );
+
+
+CREATE TABLE Usuario (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Email VARCHAR(255) NOT NULL,
+    ->     Senha VARCHAR(255) NOT NULL
+    -> );
+
+
+CREATE TABLE Alerta (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Tipo VARCHAR(255),
+    ->     Descricao TEXT,
+    ->     DataHora DATETIME,
+    ->     PainelID INT,
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID)
+    -> );
+
+
+CREATE TABLE Usuario_Painel (
+    ->     UsuarioID INT,
+    ->     PainelID INT,
+    ->     FOREIGN KEY (UsuarioID) REFERENCES Usuario(ID),
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID),
+    ->     PRIMARY KEY (UsuarioID, PainelID)
+    -> );
+
+
+INSERT INTO Painel (Nome, Localizacao, Status, DataInicioMonitoramento)
+    -> VALUES
+    ->     ('Painel 1', 'Sala 1', 'Ativo', '2023-01-15'),
+    ->     ('Painel 2', 'Sala 2', 'Inativo', '2023-02-20'),
+    ->     ('Painel 3', 'Sala 2', 'Ativo', '2023-10-20'),
+    ->     ('Painel 4', 'Sala 2', 'Ativo', '2023-02-10'),
+    ->     ('Painel 5', 'Sala 2', 'Inativo', '2023-06-18');
+
+
+INSERT INTO Sensor (Nome, Tipo, FaixaMedicao, PainelID)
+    -> VALUES
+    ->     ('Sensor de Corrente', 'Elétrico', '0-100 A', 1),
+    ->     ('Sensor de Tensão', 'Elétrico', '0-240 V', 1),
+    ->     ('Sensor de Temperatura Interna', 'Temperatura', '-10-70°C', 1),
+    ->     ('Sensor de Consumo de Energia', 'Elétrico', '0-1000 kWh', 2),
+    ->     ('Sensor de Umidade Relativa', 'Umidade', '0-100%', 2);
+
+
+INSERT INTO Usuario (Nome, Email, Senha)
+    -> VALUES
+    ->     ('João', 'joao@email.com', 'joao123'),
+    ->     ('Larissa', 'larissa@email.com', 'larissa123'),
+    ->     ('Elen', 'elen@email.com', 'elen123'),
+    ->     ('Bruna', 'bruna@email.com', 'bruna123'),
+    ->     ('Maria', 'maria@email.com', 'maria123');
+
+
+INSERT INTO Alerta (Tipo, Descricao, DataHora, PainelID)
+    -> VALUES
+    ->     ('Sobrecarga de Corrente', 'Sobrecarga detectada no Painel 5.', '2023-04-05 10:15:00', 1),
+    ->     ('Sobretensão', 'Tensão acima do limite no Painel 1.', '2023-04-10 16:30:00', 1),
+    ->     ('Temperatura Alta', 'Temperatura interna elevada no Painel 4.', '2023-04-12 08:45:00', 1),
+    ->     ('Falha no Consumo de Energia', 'Falha na medição de consumo no Painel 2.', '2023-04-07 14:20:00', 2),
+    ->     ('Umidade Baixa', 'Nível de umidade abaixo do limite no Painel 3.', '2023-04-11 12:10:00', 2);
+
+
+INSERT INTO Usuario_Painel (UsuarioID, PainelID)
+    -> VALUES
+    ->     (1, 1), -- João tem acesso ao Painel 1
+    ->     (1, 2), -- João também tem acesso ao Painel 2
+    ->     (2, 3), -- Larissa tem acesso ao Painel 3
+    ->     (3, 4), -- Elen tem acesso ao Painel 4
+    ->     (4, 5), -- Bruna tem acesso ao Painel 5
+    ->     (5, 1), -- Maria tem acesso ao Painel 1
+    ->     (5, 3); -- Maria também tem acesso ao Painel 3
+
+
+-- Qual painel que contém mais sensores
+SELECT painel.Nome AS PainelNome, COUNT(sensor.ID) AS TotalSensores
+    -> FROM Painel painel
+    -> JOIN Sensor sensor ON painel.ID = sensor.PainelID
+    -> GROUP BY painel.ID
+    -> ORDER BY TotalSensores DESC
+    -> LIMIT 1;
+
+
+-- Qual o nome e localização do painel que o usuário Larissa tem acesso?
+SELECT painel.Nome AS PainelNome, painel.Localizacao AS PainelLocalizacao
+    -> FROM Usuario_Painel up
+    -> JOIN Painel painel ON up.PainelID = painel.ID
+    -> JOIN Usuario usuario ON up.UsuarioID = usuario.ID
+    -> WHERE usuario.Nome = 'Larissa';
+
+
+-- Qual o nome e localização do painel que o usuário Maria tem acesso?
+SELECT painel.Nome AS PainelNome, painel.Localizacao AS PainelLocalizacao
+    -> FROM Usuario_Painel up
+    -> JOIN Painel painel ON up.PainelID = painel.ID
+    -> JOIN Usuario usuario ON up.UsuarioID = usuario.ID
+    -> WHERE usuario.Nome = 'Maria';
+
+
+-- Quantos alertas foram gerados pelo painel 1?
+SELECT COUNT(*) AS TotalAlertas
+    -> FROM Alerta
+    -> WHERE PainelID = (SELECT ID FROM Painel WHERE Nome = 'Painel 1');
+
+
+-- Quantos alertas foram gerados pelo painel 5?
+SELECT COUNT(*) AS TotalAlertas
+    -> FROM Alerta
+    -> WHERE PainelID = (SELECT ID FROM Painel WHERE Nome = 'Painel 5');
+
+
+- Resultados espesrados para alguns testes ---------------------------------------
+
+mysql> create database RVO;
+Query OK, 1 row affected (0.06 sec)
+
+mysql> use RVO;
+Database changed
+mysql> CREATE TABLE Painel (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Localizacao VARCHAR(255),
+    ->     Status VARCHAR(255),
+    ->     DataInicioMonitoramento DATE
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> CREATE TABLE Sensor (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Tipo VARCHAR(255),
+    ->     FaixaMedicao VARCHAR(255),
+    ->     PainelID INT,
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> CREATE TABLE Usuario (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Nome VARCHAR(255) NOT NULL,
+    ->     Email VARCHAR(255) NOT NULL,
+    ->     Senha VARCHAR(255) NOT NULL
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> CREATE TABLE Alerta (
+    ->     ID INT AUTO_INCREMENT PRIMARY KEY,
+    ->     Tipo VARCHAR(255),
+    ->     Descricao TEXT,
+    ->     DataHora DATETIME,
+    ->     PainelID INT,
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> CREATE TABLE Usuario_Painel (
+    ->     UsuarioID INT,
+    ->     PainelID INT,
+    ->     FOREIGN KEY (UsuarioID) REFERENCES Usuario(ID),
+    ->     FOREIGN KEY (PainelID) REFERENCES Painel(ID),
+    ->     PRIMARY KEY (UsuarioID, PainelID)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> INSERT INTO Painel (Nome, Localizacao, Status, DataInicioMonitoramento)
+    -> VALUES
+    ->     ('Painel 1', 'Sala 1', 'Ativo', '2023-01-15'),
+    ->     ('Painel 2', 'Sala 2', 'Inativo', '2023-02-20'),
+    ->     ('Painel 3', 'Sala 2', 'Ativo', '2023-10-20'),
+    ->     ('Painel 4', 'Sala 2', 'Ativo', '2023-02-10'),
+    ->     ('Painel 5', 'Sala 2', 'Inativo', '2023-06-18');
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO Sensor (Nome, Tipo, FaixaMedicao, PainelID)
+    -> VALUES
+    ->     ('Sensor de Corrente', 'Elétrico', '0-100 A', 1),
+    ->     ('Sensor de Tensão', 'Elétrico', '0-240 V', 1),
+    ->     ('Sensor de Temperatura Interna', 'Temperatura', '-10-70°C', 1),
+    ->     ('Sensor de Consumo de Energia', 'Elétrico', '0-1000 kWh', 2),
+    ->     ('Sensor de Umidade Relativa', 'Umidade', '0-100%', 2);
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO Usuario (Nome, Email, Senha)
+    -> VALUES
+    ->     ('João', 'joao@email.com', 'joao123'),
+    ->     ('Larissa', 'larissa@email.com', 'larissa123'),
+    ->     ('Elen', 'elen@email.com', 'elen123'),
+    ->     ('Bruna', 'bruna@email.com', 'bruna123'),
+    ->     ('Maria', 'maria@email.com', 'maria123');
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO Alerta (Tipo, Descricao, DataHora, PainelID)
+    -> VALUES
+    ->     ('Sobrecarga de Corrente', 'Sobrecarga detectada no Painel 5.', '2023-04-05 10:15:00', 1),
+    ->     ('Sobretensão', 'Tensão acima do limite no Painel 1.', '2023-04-10 16:30:00', 1),
+    ->     ('Temperatura Alta', 'Temperatura interna elevada no Painel 4.', '2023-04-12 08:45:00', 1),
+    ->     ('Falha no Consumo de Energia', 'Falha na medição de consumo no Painel 2.', '2023-04-07 14:20:00', 2),
+    ->     ('Umidade Baixa', 'Nível de umidade abaixo do limite no Painel 3.', '2023-04-11 12:10:00', 2);
+Query OK, 5 rows affected (0.00 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> INSERT INTO Usuario_Painel (UsuarioID, PainelID)
+    -> VALUES
+    ->     (1, 1), -- João tem acesso ao Painel 1
+    ->     (1, 2), -- João também tem acesso ao Painel 2
+    ->     (2, 3), -- Larissa tem acesso ao Painel 3
+    ->     (3, 4), -- Elen tem acesso ao Painel 4
+    ->     (4, 5), -- Bruna tem acesso ao Painel 5
+    ->     (5, 1), -- Maria tem acesso ao Painel 1
+    ->     (5, 3); -- Maria também tem acesso ao Painel 3
+Query OK, 7 rows affected (0.01 sec)
+Records: 7  Duplicates: 0  Warnings: 0
+
+mysql> -- Qual painel que contém mais sensores
+mysql> SELECT painel.Nome AS PainelNome, COUNT(sensor.ID) AS TotalSensores
+    -> FROM Painel painel
+    -> JOIN Sensor sensor ON painel.ID = sensor.PainelID
+    -> GROUP BY painel.ID
+    -> ORDER BY TotalSensores DESC
+    -> LIMIT 1;
++------------+---------------+
+| PainelNome | TotalSensores |
++------------+---------------+
+| Painel 1   |             3 |
++------------+---------------+
+1 row in set (0.01 sec)
+
+mysql> -- Qual o nome e localização do painel que o usuário Larissa tem acesso?
+mysql> SELECT painel.Nome AS PainelNome, painel.Localizacao AS PainelLocalizacao
+    -> FROM Usuario_Painel up
+    -> JOIN Painel painel ON up.PainelID = painel.ID
+    -> JOIN Usuario usuario ON up.UsuarioID = usuario.ID
+    -> WHERE usuario.Nome = 'Larissa';
++------------+-------------------+
+| PainelNome | PainelLocalizacao |
++------------+-------------------+
+| Painel 3   | Sala 2            |
++------------+-------------------+
+1 row in set (0.00 sec)
+
+mysql> -- Qual o nome e localização do painel que o usuário Maria tem acesso?
+mysql> SELECT painel.Nome AS PainelNome, painel.Localizacao AS PainelLocalizacao
+    -> FROM Usuario_Painel up
+    -> JOIN Painel painel ON up.PainelID = painel.ID
+    -> JOIN Usuario usuario ON up.UsuarioID = usuario.ID
+    -> WHERE usuario.Nome = 'Maria';
++------------+-------------------+
+| PainelNome | PainelLocalizacao |
++------------+-------------------+
+| Painel 1   | Sala 1            |
+| Painel 3   | Sala 2            |
++------------+-------------------+
+2 rows in set (0.00 sec)
+
+mysql> -- Quantos alertas foram gerados pelo painel 1?
+mysql> SELECT COUNT(*) AS TotalAlertas
+    -> FROM Alerta
+    -> WHERE PainelID = (SELECT ID FROM Painel WHERE Nome = 'Painel 1');
++--------------+
+| TotalAlertas |
++--------------+
+|            3 |
++--------------+
+1 row in set (0.01 sec)
+
+mysql> -- Quantos alertas foram gerados pelo painel 5?
+mysql> SELECT COUNT(*) AS TotalAlertas
+    -> FROM Alerta
+    -> WHERE PainelID = (SELECT ID FROM Painel WHERE Nome = 'Painel 5');
++--------------+
+| TotalAlertas |
++--------------+
+|            0 |
++--------------+
+1 row in set (0.00 sec)
